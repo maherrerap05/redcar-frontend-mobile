@@ -34,43 +34,41 @@ export default function AppNavigator() {
         <Stack.Screen
           name="Search"
           component={SearchScreen}
-          options={{ title: 'RedCar — Buscar vehículo' }}
+          options={{ headerShown: false }}
         />
         <Stack.Screen
           name="Vehiculos"
           component={VehiculosScreen}
           options={{ title: 'Vehículos disponibles' }}
+          options={{ headerShown: false }}
         />
         <Stack.Screen
           name="Extras"
           component={ExtrasScreen}
           options={{ title: 'Extras y conductores' }}
+          options={{ headerShown: false }}
         />
         <Stack.Screen
           name="Cliente"
           component={ClienteScreen}
           options={{ title: 'Datos del titular' }}
+          options={{ headerShown: false }}
         />
         <Stack.Screen
           name="Confirmacion"
           component={ConfirmacionScreen}
           options={{ title: 'Confirmar reserva' }}
+          options={{ headerShown: false }}
         />
         <Stack.Screen
           name="EstadoReserva"
           component={EstadoReservaScreen}
-          options={{
-            title: 'Procesando reserva',
-            headerBackVisible: false,
-          }}
+          options={{ headerShown: false }}
         />
         <Stack.Screen
           name="Exito"
           component={ExitoScreen}
-          options={{
-            title: '¡Reserva confirmada!',
-            headerBackVisible: false,
-          }}
+          options={{ headerShown: false }}
         />
       </Stack.Navigator>
     </NavigationContainer>

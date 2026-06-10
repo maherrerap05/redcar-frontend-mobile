@@ -8,6 +8,15 @@ import {
 import client from '../api/gatewayClient';
 import { CREAR_RESERVA } from '../graphql/mutations';
 
+const NEGRO = '#1A1A1A';
+const NEGRO_CARD = '#242424';
+const NEGRO_INPUT = '#2E2E2E';
+const ROJO = '#C0392B';
+const ROJO_CLARO = '#E74C3C';
+const GRIS = '#999999';
+const GRIS_LABEL = '#AAAAAA';
+const BLANCO = '#FFFFFF';
+
 export default function ConfirmacionScreen({ navigation, route }) {
   const { busqueda, vehiculo, extras, conductores, totales, cliente } = route.params;
 
@@ -17,20 +26,14 @@ export default function ConfirmacionScreen({ navigation, route }) {
 
   async function confirmarReserva() {
     if (!aceptaTerminos) {
-      Alert.alert(
-        'Términos requeridos',
+      Alert.alert('Términos requeridos',
         'Debes aceptar los términos y condiciones para continuar.',
-        [{ text: 'OK' }]
-      );
+        [{ text: 'OK' }]);
       return;
     }
-
     setProcesando(true);
-    setPaso('Preparando tu reserva...');
-
+    setPaso('Publicando solicitud de reserva...');
     try {
-      setPaso('Publicando solicitud de reserva...');
-
       const input = {
         idVehiculo: vehiculo.idVehiculo,
         idLocalizacionRecogida: busqueda.idLocalizacionRecogida,
@@ -73,139 +76,137 @@ export default function ConfirmacionScreen({ navigation, route }) {
       const data = await client.request(CREAR_RESERVA, { input });
       const resultado = data.crearReserva;
 
-      if (!resultado?.correlationId) {
+      if (!resultado?.correlationId)
         throw new Error('No se recibió confirmación del servidor.');
-      }
 
       setProcesando(false);
-
-      // Navegar a la pantalla de estado para el polling.
       navigation.navigate('EstadoReserva', {
         correlationId: resultado.correlationId,
         codigoReserva: resultado.codigoReserva,
-        vehiculo,
-        cliente,
-        totales,
+        vehiculo, cliente, totales,
       });
-
     } catch (err) {
       setProcesando(false);
       setPaso('');
-      Alert.alert(
-        'Error al procesar la reserva',
-        err?.message || 'Ocurrió un error inesperado. Por favor intenta de nuevo.',
-        [{ text: 'OK' }]
-      );
+      Alert.alert('Error al procesar la reserva',
+        err?.message || 'Ocurrió un error inesperado. Intenta de nuevo.',
+        [{ text: 'OK' }]);
     }
   }
 
   return (
-    <ScrollView style={styles.container}
-      contentContainerStyle={styles.content}>
+    <View style={styles.container}>
 
-      {/* Vehículo */}
-      <View style={styles.seccion}>
-        <Text style={styles.seccionTitle}>🚗 Vehículo seleccionado</Text>
+      {/* Header con botón volver */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.btnVolver}
+          onPress={() => navigation.goBack()}
+          disabled={procesando}
+        >
+          <Text style={styles.btnVolverText}>{'<'}</Text>
+        </TouchableOpacity>
+        <View style={styles.headerTextos}>
+          <Text style={styles.headerTitulo}>Confirmar reserva</Text>
+          <Text style={styles.headerSub}>Revisa los detalles antes de confirmar</Text>
+        </View>
+      </View>
+
+      <ScrollView contentContainerStyle={styles.content}>
+
+        {/* Vehículo */}
+        <Text style={styles.seccionLabel}>VEHÍCULO SELECCIONADO</Text>
         <View style={styles.card}>
           <Text style={styles.vehiculoModelo}>{vehiculo.modeloVehiculo}</Text>
           <Text style={styles.vehiculoSub}>
             {vehiculo.aniofabricacIon} · {vehiculo.tipoTransmision}
           </Text>
-          <View style={styles.specs}>
-            <Text style={styles.spec}>👥 {vehiculo.capacidadPasajeros} pas.</Text>
-            <Text style={styles.spec}>⛽ {vehiculo.tipoCombustible}</Text>
+          <View style={styles.divider} />
+          <View style={styles.specsRow}>
+            <View style={styles.specItem}>
+              <Text style={styles.specText}>{vehiculo.capacidadPasajeros} pas.</Text>
+            </View>
+            <View style={styles.specItem}>
+              <Text style={styles.specText}>{vehiculo.tipoCombustible}</Text>
+            </View>
             {vehiculo.aireAcondicionado && (
-              <Text style={styles.spec}>❄️ A/C</Text>
+              <View style={styles.specItem}>
+                <Text style={styles.specText}>A/C</Text>
+              </View>
             )}
           </View>
         </View>
-      </View>
 
-      {/* Fechas */}
-      <View style={styles.seccion}>
-        <Text style={styles.seccionTitle}>📅 Fechas de renta</Text>
+        {/* Fechas */}
+        <Text style={styles.seccionLabel}>FECHAS DE RENTA</Text>
         <View style={styles.card}>
-          <InfoFila
-            label="Sucursal recogida"
-            valor={busqueda.nombreLocalizacionRecogida}
-          />
-          <InfoFila
-            label="Recogida"
-            valor={`${busqueda.fechaRecogida} a las ${busqueda.horaRecogida}`}
-          />
-          <InfoFila
-            label="Sucursal devolución"
+          <InfoFila label="Sucursal recogida"
+            valor={busqueda.nombreLocalizacionRecogida} />
+          <InfoFila label="Recogida"
+            valor={`${busqueda.fechaRecogida} a las ${busqueda.horaRecogida}`} />
+          <InfoFila label="Sucursal devolución"
             valor={busqueda.nombreLocalizacionDevolucion ||
-              busqueda.nombreLocalizacionRecogida}
-          />
-          <InfoFila
-            label="Devolución"
-            valor={`${busqueda.fechaDevolucion} a las ${busqueda.horaDevolucion}`}
-          />
-          <InfoFila
-            label="Duración"
+              busqueda.nombreLocalizacionRecogida} />
+          <InfoFila label="Devolución"
+            valor={`${busqueda.fechaDevolucion} a las ${busqueda.horaDevolucion}`} />
+          <InfoFila label="Duración"
             valor={`${busqueda.dias} ${busqueda.dias === 1 ? 'día' : 'días'}`}
-          />
+            ultimo />
         </View>
-      </View>
 
-      {/* Conductores */}
-      {conductores.length > 0 && (
-        <View style={styles.seccion}>
-          <Text style={styles.seccionTitle}>👤 Conductores</Text>
-          <View style={styles.card}>
-            {conductores.map((c, i) => (
-              <View key={i} style={styles.conductorItem}>
-                <Text style={styles.conductorBadge}>
-                  {i === 0 ? '⭐ Principal' : `Adicional ${i}`}
-                </Text>
-                <Text style={styles.conductorNombre}>
-                  {c.conNombre1} {c.conApellido1}
-                </Text>
-                <Text style={styles.conductorId}>
-                  ID: {c.numeroIdentificacion}
-                </Text>
-              </View>
-            ))}
-          </View>
-        </View>
-      )}
+        {/* Conductores */}
+        {conductores.length > 0 && (
+          <>
+            <Text style={styles.seccionLabel}>CONDUCTORES</Text>
+            <View style={styles.card}>
+              {conductores.map((c, i) => (
+                <View key={i} style={[styles.conductorItem,
+                  i < conductores.length - 1 && styles.conductorItemBorder]}>
+                  <Text style={styles.conductorBadge}>
+                    {i === 0 ? 'PRINCIPAL' : `ADICIONAL ${i}`}
+                  </Text>
+                  <Text style={styles.conductorNombre}>
+                    {c.conNombre1} {c.conApellido1}
+                  </Text>
+                  <Text style={styles.conductorId}>
+                    ID: {c.numeroIdentificacion}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </>
+        )}
 
-      {/* Datos del cliente */}
-      <View style={styles.seccion}>
-        <Text style={styles.seccionTitle}>🧾 Titular de la reserva</Text>
+        {/* Titular */}
+        <Text style={styles.seccionLabel}>TITULAR DE LA RESERVA</Text>
         <View style={styles.card}>
-          <InfoFila
-            label="Nombre"
-            valor={`${cliente.nombres} ${cliente.apellidos || ''}`}
-          />
+          <InfoFila label="Nombre"
+            valor={`${cliente.nombres} ${cliente.apellidos || ''}`} />
           <InfoFila label="Correo" valor={cliente.correo} />
           <InfoFila label="Teléfono" valor={cliente.telefono} />
-          <InfoFila
-            label="Identificación"
+          <InfoFila label="Identificación"
             valor={`${cliente.tipoIdentificacion}: ${cliente.numeroIdentificacion}`}
-          />
+            ultimo />
         </View>
-      </View>
 
-      {/* Extras */}
-      {extras.length > 0 && (
-        <View style={styles.seccion}>
-          <Text style={styles.seccionTitle}>🎒 Extras incluidos</Text>
-          <View style={styles.card}>
-            {extras.map((e, i) => (
-              <View key={i} style={styles.extraItem}>
-                <Text style={styles.extraNombre}>Extra #{e.idExtra}</Text>
-                <Text style={styles.extraCantidad}>×{e.cantidad}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-      )}
+        {/* Extras */}
+        {extras.length > 0 && (
+          <>
+            <Text style={styles.seccionLabel}>EXTRAS INCLUIDOS</Text>
+            <View style={styles.card}>
+              {extras.map((e, i) => (
+                <View key={i} style={[styles.extraItem,
+                  i < extras.length - 1 && styles.conductorItemBorder]}>
+                  <Text style={styles.extraNombre}>Extra #{e.idExtra}</Text>
+                  <Text style={styles.extraCantidad}>x{e.cantidad}</Text>
+                </View>
+              ))}
+            </View>
+          </>
+        )}
 
-      {/* Resumen de pago */}
-      <View style={styles.seccion}>
-        <Text style={styles.seccionTitle}>💳 Resumen de pago</Text>
+        {/* Resumen de pago */}
+        <Text style={styles.seccionLabel}>RESUMEN DE PAGO</Text>
         <View style={styles.card}>
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>
@@ -243,62 +244,49 @@ export default function ConfirmacionScreen({ navigation, route }) {
             </Text>
           </View>
         </View>
-      </View>
 
-      {/* Términos y condiciones */}
-      <TouchableOpacity
-        style={styles.terminosRow}
-        onPress={() => setAceptaTerminos(!aceptaTerminos)}
-      >
-        <View style={[styles.checkbox,
-          aceptaTerminos && styles.checkboxChecked]}>
-          {aceptaTerminos && (
-            <Text style={styles.checkmark}>✓</Text>
-          )}
-        </View>
-        <Text style={styles.terminosText}>
-          Acepto los términos y condiciones de renta de RedCar.
-          Entiendo que al confirmar se generará una reserva y
-          factura a mi nombre.
-        </Text>
-      </TouchableOpacity>
-
-      {/* Botón confirmar */}
-      <TouchableOpacity
-        style={[styles.btnConfirmar,
-          procesando && styles.btnConfirmarDisabled]}
-        onPress={confirmarReserva}
-        disabled={procesando}
-      >
-        {procesando ? (
-          <View style={styles.procesandoRow}>
-            <ActivityIndicator size="small" color="#FFF" />
-            <Text style={styles.btnConfirmarText}>{paso}</Text>
+        {/* Términos */}
+        <TouchableOpacity
+          style={styles.terminosRow}
+          onPress={() => setAceptaTerminos(!aceptaTerminos)}
+        >
+          <View style={[styles.checkbox,
+            aceptaTerminos && styles.checkboxChecked]}>
+            {aceptaTerminos && (
+              <Text style={styles.checkmark}>✓</Text>
+            )}
           </View>
-        ) : (
-          <Text style={styles.btnConfirmarText}>
-            🔒 Confirmar Reserva
+          <Text style={styles.terminosText}>
+            Acepto los términos y condiciones de renta de RedCar.
+            Al confirmar se generará una reserva y factura a mi nombre.
           </Text>
-        )}
-      </TouchableOpacity>
+        </TouchableOpacity>
 
-      <TouchableOpacity
-        style={styles.btnVolver}
-        onPress={() => navigation.goBack()}
-        disabled={procesando}
-      >
-        <Text style={styles.btnVolverText}>← Volver</Text>
-      </TouchableOpacity>
+        {/* Botón confirmar */}
+        <TouchableOpacity
+          style={[styles.btnConfirmar,
+            procesando && styles.btnConfirmarDisabled]}
+          onPress={confirmarReserva}
+          disabled={procesando}
+        >
+          {procesando ? (
+            <View style={styles.procesandoRow}>
+              <ActivityIndicator size="small" color={BLANCO} />
+              <Text style={styles.btnConfirmarText}>{paso}</Text>
+            </View>
+          ) : (
+            <Text style={styles.btnConfirmarText}>Confirmar Reserva</Text>
+          )}
+        </TouchableOpacity>
 
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
-// ── Componente auxiliar ───────────────────────────────────────────────────────
-
-function InfoFila({ label, valor }) {
+function InfoFila({ label, valor, ultimo = false }) {
   return (
-    <View style={styles.infoFila}>
+    <View style={[styles.infoFila, !ultimo && styles.infoFilaBorder]}>
       <Text style={styles.infoLabel}>{label}</Text>
       <Text style={styles.infoValor}>{valor ?? '—'}</Text>
     </View>
@@ -306,94 +294,185 @@ function InfoFila({ label, valor }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F5F5' },
-  content: { padding: 16, paddingBottom: 40 },
-  seccion: { marginBottom: 16 },
-  seccionTitle: {
-    fontSize: 15, fontWeight: 'bold',
-    color: '#333', marginBottom: 8
+  container: {
+    flex: 1,
+    backgroundColor: NEGRO,
   },
-  card: {
-    backgroundColor: '#FFF', borderRadius: 12,
-    padding: 16, elevation: 1
-  },
-  vehiculoModelo: {
-    fontSize: 18, fontWeight: 'bold', color: '#222', marginBottom: 4
-  },
-  vehiculoSub: { fontSize: 13, color: '#888', marginBottom: 10 },
-  specs: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  spec: {
-    fontSize: 12, color: '#555',
-    backgroundColor: '#F5F5F5',
-    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6
-  },
-  infoFila: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: '#F5F5F5'
-  },
-  infoLabel: { fontSize: 13, color: '#888', flex: 1 },
-  infoValor: {
-    fontSize: 13, color: '#333',
-    fontWeight: '500', flex: 2, textAlign: 'right'
-  },
-  conductorItem: {
-    paddingVertical: 8, borderBottomWidth: 1,
-    borderBottomColor: '#F5F5F5'
-  },
-  conductorBadge: {
-    fontSize: 12, color: '#C0392B',
-    fontWeight: '600', marginBottom: 2
-  },
-  conductorNombre: { fontSize: 14, color: '#333', fontWeight: '500' },
-  conductorId: { fontSize: 12, color: '#888' },
-  extraItem: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    paddingVertical: 6
-  },
-  extraNombre: { fontSize: 14, color: '#333' },
-  extraCantidad: { fontSize: 14, color: '#C0392B', fontWeight: '600' },
-  totalRow: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    marginBottom: 8
-  },
-  totalLabel: { fontSize: 14, color: '#666' },
-  totalValor: { fontSize: 14, color: '#333', fontWeight: '500' },
-  divider: {
-    height: 1, backgroundColor: '#EEE',
-    marginVertical: 8
-  },
-  grandTotalLabel: { fontSize: 16, fontWeight: 'bold', color: '#333' },
-  grandTotalValor: {
-    fontSize: 18, fontWeight: 'bold', color: '#C0392B'
-  },
-  terminosRow: {
-    flexDirection: 'row', alignItems: 'flex-start',
-    gap: 12, marginBottom: 20, padding: 12,
-    backgroundColor: '#FFF', borderRadius: 12
-  },
-  checkbox: {
-    width: 24, height: 24, borderRadius: 4,
-    borderWidth: 2, borderColor: '#C0392B',
-    justifyContent: 'center', alignItems: 'center',
-    marginTop: 2
-  },
-  checkboxChecked: { backgroundColor: '#C0392B' },
-  checkmark: { color: '#FFF', fontSize: 14, fontWeight: 'bold' },
-  terminosText: { flex: 1, fontSize: 13, color: '#555', lineHeight: 20 },
-  btnConfirmar: {
-    backgroundColor: '#C0392B', borderRadius: 12,
-    paddingVertical: 16, alignItems: 'center', marginBottom: 10
-  },
-  btnConfirmarDisabled: { backgroundColor: '#E0A0A0' },
-  btnConfirmarText: {
-    color: '#FFF', fontSize: 16, fontWeight: 'bold'
-  },
-  procesandoRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 10
+  header: {
+    backgroundColor: NEGRO_CARD,
+    paddingTop: 48,
+    paddingBottom: 14,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#333',
   },
   btnVolver: {
-    borderWidth: 1, borderColor: '#C0392B',
-    borderRadius: 12, paddingVertical: 12, alignItems: 'center'
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: NEGRO_INPUT,
+    borderWidth: 1,
+    borderColor: '#444',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  btnVolverText: { color: '#C0392B', fontSize: 14, fontWeight: '600' },
+  btnVolverText: {
+    color: BLANCO,
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  headerTextos: { flex: 1 },
+  headerTitulo: {
+    color: BLANCO,
+    fontSize: 15,
+    fontWeight: 'bold',
+    marginBottom: 2,
+  },
+  headerSub: { color: GRIS_LABEL, fontSize: 12 },
+  content: { padding: 16, paddingBottom: 48 },
+  seccionLabel: {
+    color: GRIS_LABEL,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    fontWeight: '700',
+    marginBottom: 10,
+    marginTop: 20,
+  },
+  card: {
+    backgroundColor: NEGRO_CARD,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#333',
+    marginVertical: 10,
+  },
+  vehiculoModelo: {
+    color: BLANCO,
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  vehiculoSub: { color: GRIS, fontSize: 13, marginBottom: 10 },
+  specsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  specItem: {
+    backgroundColor: NEGRO_INPUT,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#3D3D3D',
+  },
+  specText: { color: GRIS_LABEL, fontSize: 12 },
+  infoFila: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+  },
+  infoFilaBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#333',
+  },
+  infoLabel: { fontSize: 13, color: GRIS_LABEL, flex: 1 },
+  infoValor: {
+    fontSize: 13,
+    color: BLANCO,
+    fontWeight: '500',
+    flex: 2,
+    textAlign: 'right',
+  },
+  conductorItem: { paddingVertical: 10 },
+  conductorItemBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#333',
+  },
+  conductorBadge: {
+    color: ROJO_CLARO,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1.5,
+    marginBottom: 4,
+  },
+  conductorNombre: {
+    color: BLANCO,
+    fontSize: 14,
+    fontWeight: '500',
+    marginBottom: 2,
+  },
+  conductorId: { color: GRIS, fontSize: 12 },
+  extraItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+  },
+  extraNombre: { color: BLANCO, fontSize: 14 },
+  extraCantidad: { color: ROJO_CLARO, fontSize: 14, fontWeight: '600' },
+  totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  totalLabel: { fontSize: 13, color: GRIS_LABEL },
+  totalValor: { fontSize: 13, color: BLANCO, fontWeight: '500' },
+  grandTotalLabel: { fontSize: 16, fontWeight: 'bold', color: BLANCO },
+  grandTotalValor: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: ROJO_CLARO,
+  },
+  terminosRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginTop: 20,
+    marginBottom: 16,
+    backgroundColor: NEGRO_CARD,
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: ROJO,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 1,
+  },
+  checkboxChecked: { backgroundColor: ROJO },
+  checkmark: { color: BLANCO, fontSize: 13, fontWeight: 'bold' },
+  terminosText: {
+    flex: 1,
+    fontSize: 13,
+    color: GRIS_LABEL,
+    lineHeight: 20,
+  },
+  btnConfirmar: {
+    backgroundColor: ROJO,
+    borderRadius: 10,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  btnConfirmarDisabled: { backgroundColor: '#7D1E18' },
+  btnConfirmarText: {
+    color: BLANCO,
+    fontSize: 15,
+    fontWeight: 'bold',
+    letterSpacing: 0.5,
+  },
+  procesandoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
 });

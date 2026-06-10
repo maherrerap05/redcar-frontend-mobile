@@ -8,6 +8,15 @@ import {
 import client from '../api/gatewayClient';
 import { BUSCAR_CLIENTE_POR_CORREO } from '../graphql/queries';
 
+const NEGRO = '#1A1A1A';
+const NEGRO_CARD = '#242424';
+const NEGRO_INPUT = '#2E2E2E';
+const ROJO = '#C0392B';
+const ROJO_CLARO = '#E74C3C';
+const GRIS = '#999999';
+const GRIS_LABEL = '#AAAAAA';
+const BLANCO = '#FFFFFF';
+
 const FORM_VACIO = {
   tipoIdentificacion: 'CED',
   numeroIdentificacion: '',
@@ -35,31 +44,23 @@ export default function ClienteScreen({ navigation, route }) {
       setErrores({ correo: 'Ingresa un correo válido' });
       return;
     }
-
     setBuscando(true);
     setErrores({});
     setBusquedaRealizada(false);
     setClienteBloqueado(false);
     setClienteEncontrado(false);
-
     try {
       const data = await client.request(
         BUSCAR_CLIENTE_POR_CORREO,
         { correo: correoInput.trim() }
       );
-
       const clienteData = data.buscarClientePorCorreo;
-
       if (clienteData) {
         if (clienteData.esEliminado || clienteData.estado !== 'ACT') {
           setClienteBloqueado(true);
-          setErrores({
-            correo: 'Este cliente no está disponible. Contacta a soporte.'
-          });
-          setBusquedaRealizada(false);
+          setErrores({ correo: 'Este cliente no está disponible. Contacta a soporte.' });
           return;
         }
-
         setClienteEncontrado(true);
         setForm({
           tipoIdentificacion: clienteData.tipoIdentificacion || 'CED',
@@ -71,21 +72,14 @@ export default function ClienteScreen({ navigation, route }) {
           telefono: clienteData.telefono || '',
           direccion: clienteData.direccion || '',
         });
-
-        Alert.alert(
-          '✓ Cliente encontrado',
-          `Bienvenido, ${clienteData.nombres}. Tus datos han sido cargados.`,
-          [{ text: 'OK' }]
-        );
+        Alert.alert('Cliente encontrado',
+          `Bienvenido, ${clienteData.nombres}.`, [{ text: 'OK' }]);
       } else {
         setClienteEncontrado(false);
         setForm({ ...FORM_VACIO, correo: correoInput.trim() });
-
-        Alert.alert(
-          'ℹ️ Correo no registrado',
-          'Completa el formulario para registrarte automáticamente.',
-          [{ text: 'OK' }]
-        );
+        Alert.alert('Correo no registrado',
+          'Completa el formulario para registrarte.',
+          [{ text: 'OK' }]);
       }
     } catch {
       setClienteEncontrado(false);
@@ -134,399 +128,516 @@ export default function ClienteScreen({ navigation, route }) {
       return;
     }
     if (!validar()) return;
-
     navigation.navigate('Confirmacion', {
-      busqueda,
-      vehiculo,
-      extras,
-      conductores,
-      totales,
-      cliente: form,
+      busqueda, vehiculo, extras, conductores, totales, cliente: form,
     });
   }
 
   return (
-    <ScrollView style={styles.container}
-      contentContainerStyle={styles.content}>
+    <View style={styles.container}>
 
-      {/* Hero */}
-      <View style={styles.hero}>
-        <Text style={styles.heroTitle}>🧾 Datos del titular</Text>
-        <Text style={styles.heroSub}>
-          Esta persona será el cliente asociado a la reserva
-          y a quien se emitirá la factura.
-        </Text>
-      </View>
-
-      {/* Búsqueda por correo */}
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Verificar correo electrónico</Text>
-
-        <View style={styles.busquedaRow}>
-          <TextInput
-            style={[styles.input, { flex: 1, marginBottom: 0 }]}
-            placeholder="tucorreo@ejemplo.com"
-            value={correoInput}
-            onChangeText={v => {
-              setCorreoInput(v);
-              setErrores(prev => ({ ...prev, correo: '' }));
-            }}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            editable={!clienteEncontrado}
-          />
-          {clienteEncontrado ? (
-            <TouchableOpacity
-              style={styles.btnCambiar}
-              onPress={resetearBusqueda}
-            >
-              <Text style={styles.btnCambiarText}>✏️ Cambiar</Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              style={[styles.btnBuscar,
-                buscando && styles.btnBuscarDisabled]}
-              onPress={buscarCliente}
-              disabled={buscando}
-            >
-              {buscando
-                ? <ActivityIndicator size="small" color="#FFF" />
-                : <Text style={styles.btnBuscarText}>🔍</Text>
-              }
-            </TouchableOpacity>
-          )}
+      {/* Header con botón volver */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.btnVolver}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.btnVolverText}>{'<'}</Text>
+        </TouchableOpacity>
+        <View style={styles.headerTextos}>
+          <Text style={styles.headerTitulo}>Datos del titular</Text>
+          <Text style={styles.headerSub}>
+            Titular asociado a la reserva y factura
+          </Text>
         </View>
-
-        {errores.correo && (
-          <Text style={styles.errorMsg}>{errores.correo}</Text>
-        )}
-        {busquedaRealizada && clienteEncontrado && (
-          <Text style={styles.msgExito}>
-            ✓ Cliente encontrado — datos cargados automáticamente
-          </Text>
-        )}
-        {busquedaRealizada && !clienteEncontrado && !clienteBloqueado && (
-          <Text style={styles.msgInfo}>
-            ℹ️ Correo no registrado — completa el formulario para continuar
-          </Text>
-        )}
       </View>
 
-      {/* Formulario cliente */}
-      {busquedaRealizada && !clienteBloqueado && (
+      <ScrollView contentContainerStyle={styles.content}>
+
+        {/* Búsqueda por correo */}
+        <Text style={styles.seccionLabel}>VERIFICAR CORREO ELECTRÓNICO</Text>
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>
-            {clienteEncontrado ? 'Confirma tus datos' : 'Completa tu información'}
-          </Text>
-
-          {/* Tipo identificación */}
-          <Text style={styles.label}>Tipo de identificación</Text>
-          {clienteEncontrado ? (
-            <Text style={styles.valorMostrado}>
-              {form.tipoIdentificacion === 'CED' ? 'Cédula' : 'RUC'}
+          <View style={styles.busquedaRow}>
+            <TextInput
+              style={[styles.input, { flex: 1, marginBottom: 0 }]}
+              placeholder="tucorreo@ejemplo.com"
+              placeholderTextColor={GRIS}
+              value={correoInput}
+              onChangeText={v => {
+                setCorreoInput(v);
+                setErrores(prev => ({ ...prev, correo: '' }));
+              }}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              editable={!clienteEncontrado}
+            />
+            {clienteEncontrado ? (
+              <TouchableOpacity
+                style={styles.btnCambiar}
+                onPress={resetearBusqueda}
+              >
+                <Text style={styles.btnCambiarText}>Cambiar</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={[styles.btnBuscar,
+                  buscando && styles.btnBuscarDisabled]}
+                onPress={buscarCliente}
+                disabled={buscando}
+              >
+                {buscando
+                  ? <ActivityIndicator size="small" color={BLANCO} />
+                  : <Text style={styles.btnBuscarText}>Buscar</Text>
+                }
+              </TouchableOpacity>
+            )}
+          </View>
+          {errores.correo && (
+            <Text style={styles.errorMsg}>{errores.correo}</Text>
+          )}
+          {busquedaRealizada && clienteEncontrado && (
+            <Text style={styles.msgExito}>
+              Cliente encontrado — datos cargados automáticamente
             </Text>
-          ) : (
-            <View style={styles.tipoRow}>
-              {['CED', 'RUC'].map(tipo => (
-                <TouchableOpacity
-                  key={tipo}
-                  style={[styles.tipoBtn,
-                    form.tipoIdentificacion === tipo && styles.tipoBtnActivo]}
-                  onPress={() => cambiar('tipoIdentificacion', tipo)}
-                >
-                  <Text style={[styles.tipoBtnText,
-                    form.tipoIdentificacion === tipo && styles.tipoBtnTextActivo]}>
-                    {tipo === 'CED' ? 'Cédula' : 'RUC'}
+          )}
+          {busquedaRealizada && !clienteEncontrado && !clienteBloqueado && (
+            <Text style={styles.msgInfo}>
+              Correo no registrado — completa el formulario para continuar
+            </Text>
+          )}
+        </View>
+
+        {/* Formulario cliente */}
+        {busquedaRealizada && !clienteBloqueado && (
+          <>
+            <Text style={styles.seccionLabel}>
+              {clienteEncontrado ? 'CONFIRMA TUS DATOS' : 'COMPLETA TU INFORMACIÓN'}
+            </Text>
+            <View style={styles.card}>
+
+              {/* Tipo identificación */}
+              <Text style={styles.fieldLabel}>TIPO DE IDENTIFICACIÓN</Text>
+              {clienteEncontrado ? (
+                <Text style={styles.valorMostrado}>
+                  {form.tipoIdentificacion === 'CED' ? 'Cédula' : 'RUC'}
+                </Text>
+              ) : (
+                <View style={styles.tipoRow}>
+                  {['CED', 'RUC'].map(tipo => (
+                    <TouchableOpacity
+                      key={tipo}
+                      style={[styles.tipoBtn,
+                        form.tipoIdentificacion === tipo && styles.tipoBtnActivo]}
+                      onPress={() => cambiar('tipoIdentificacion', tipo)}
+                    >
+                      <Text style={[styles.tipoBtnText,
+                        form.tipoIdentificacion === tipo && styles.tipoBtnTextActivo]}>
+                        {tipo === 'CED' ? 'Cédula' : 'RUC'}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+
+              {/* Número identificación */}
+              <Text style={styles.fieldLabel}>NÚMERO DE IDENTIFICACIÓN *</Text>
+              {clienteEncontrado ? (
+                <Text style={styles.valorMostrado}>{form.numeroIdentificacion}</Text>
+              ) : (
+                <>
+                  <TextInput
+                    style={[styles.input,
+                      errores.numeroIdentificacion && styles.inputError]}
+                    placeholder="0102030405"
+                    placeholderTextColor={GRIS}
+                    value={form.numeroIdentificacion}
+                    onChangeText={v => cambiar('numeroIdentificacion', v)}
+                    keyboardType="numeric"
+                  />
+                  {errores.numeroIdentificacion && (
+                    <Text style={styles.errorMsg}>{errores.numeroIdentificacion}</Text>
+                  )}
+                </>
+              )}
+
+              {/* Nombres */}
+              <Text style={styles.fieldLabel}>NOMBRES *</Text>
+              {clienteEncontrado ? (
+                <Text style={styles.valorMostrado}>{form.nombres}</Text>
+              ) : (
+                <>
+                  <TextInput
+                    style={[styles.input, errores.nombres && styles.inputError]}
+                    placeholder="Juan Carlos"
+                    placeholderTextColor={GRIS}
+                    value={form.nombres}
+                    onChangeText={v => cambiar('nombres', v)}
+                  />
+                  {errores.nombres && (
+                    <Text style={styles.errorMsg}>{errores.nombres}</Text>
+                  )}
+                </>
+              )}
+
+              {/* Apellidos */}
+              <Text style={styles.fieldLabel}>APELLIDOS *</Text>
+              {clienteEncontrado ? (
+                <Text style={styles.valorMostrado}>
+                  {form.apellidos || 'No especificado'}
+                </Text>
+              ) : (
+                <>
+                  <TextInput
+                    style={[styles.input, errores.apellidos && styles.inputError]}
+                    placeholder="García Pérez"
+                    placeholderTextColor={GRIS}
+                    value={form.apellidos}
+                    onChangeText={v => cambiar('apellidos', v)}
+                  />
+                  {errores.apellidos && (
+                    <Text style={styles.errorMsg}>{errores.apellidos}</Text>
+                  )}
+                </>
+              )}
+
+              {/* Correo */}
+              <Text style={styles.fieldLabel}>CORREO *</Text>
+              <Text style={styles.valorMostrado}>{form.correo}</Text>
+
+              {/* Teléfono */}
+              <Text style={styles.fieldLabel}>TELÉFONO *</Text>
+              {clienteEncontrado ? (
+                <Text style={styles.valorMostrado}>
+                  {form.telefono || 'No especificado'}
+                </Text>
+              ) : (
+                <>
+                  <TextInput
+                    style={[styles.input, errores.telefono && styles.inputError]}
+                    placeholder="0991234567"
+                    placeholderTextColor={GRIS}
+                    value={form.telefono}
+                    onChangeText={v => cambiar('telefono', v)}
+                    keyboardType="phone-pad"
+                  />
+                  {errores.telefono && (
+                    <Text style={styles.errorMsg}>{errores.telefono}</Text>
+                  )}
+                </>
+              )}
+
+              {/* Razón social */}
+              {(form.razonSocial || !clienteEncontrado) && (
+                <>
+                  <Text style={styles.fieldLabel}>
+                    RAZÓN SOCIAL / EMPRESA (OPCIONAL)
                   </Text>
-                </TouchableOpacity>
-              ))}
+                  {clienteEncontrado ? (
+                    <Text style={styles.valorMostrado}>
+                      {form.razonSocial || 'No especificado'}
+                    </Text>
+                  ) : (
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Empresa S.A. (opcional)"
+                      placeholderTextColor={GRIS}
+                      value={form.razonSocial}
+                      onChangeText={v => cambiar('razonSocial', v)}
+                    />
+                  )}
+                </>
+              )}
+
+              {/* Dirección */}
+              {(form.direccion || !clienteEncontrado) && (
+                <>
+                  <Text style={styles.fieldLabel}>DIRECCIÓN</Text>
+                  {clienteEncontrado ? (
+                    <Text style={styles.valorMostrado}>
+                      {form.direccion || 'No especificado'}
+                    </Text>
+                  ) : (
+                    <TextInput
+                      style={[styles.input, { marginBottom: 0 }]}
+                      placeholder="Av. Ejemplo 123, Quito"
+                      placeholderTextColor={GRIS}
+                      value={form.direccion}
+                      onChangeText={v => cambiar('direccion', v)}
+                    />
+                  )}
+                </>
+              )}
+
+              {clienteEncontrado && (
+                <Text style={styles.notaEdicion}>
+                  ¿Datos incorrectos? Contacta a soporte.
+                </Text>
+              )}
             </View>
-          )}
+          </>
+        )}
 
-          {/* Número identificación */}
-          <Text style={styles.label}>Número de identificación *</Text>
-          {clienteEncontrado ? (
-            <Text style={styles.valorMostrado}>
-              {form.numeroIdentificacion}
+        {/* Resumen reserva */}
+        <Text style={styles.seccionLabel}>TU RESERVA</Text>
+        <View style={styles.card}>
+          <Text style={styles.resumenVehiculo}>{vehiculo.modeloVehiculo}</Text>
+          <View style={styles.totalesDivider} />
+          <View style={styles.resumenRow}>
+            <Text style={styles.resumenLabel}>Duración</Text>
+            <Text style={styles.resumenValor}>{busqueda.dias} día(s)</Text>
+          </View>
+          <View style={styles.resumenRow}>
+            <Text style={styles.resumenLabel}>Subtotal</Text>
+            <Text style={styles.resumenValor}>
+              ${totales.subtotal.toFixed(2)}
             </Text>
-          ) : (
-            <>
-              <TextInput
-                style={[styles.input,
-                  errores.numeroIdentificacion && styles.inputError]}
-                placeholder="0102030405"
-                value={form.numeroIdentificacion}
-                onChangeText={v => cambiar('numeroIdentificacion', v)}
-                keyboardType="numeric"
-              />
-              {errores.numeroIdentificacion && (
-                <Text style={styles.errorMsg}>
-                  {errores.numeroIdentificacion}
-                </Text>
-              )}
-            </>
-          )}
-
-          {/* Nombres */}
-          <Text style={styles.label}>Nombres *</Text>
-          {clienteEncontrado ? (
-            <Text style={styles.valorMostrado}>{form.nombres}</Text>
-          ) : (
-            <>
-              <TextInput
-                style={[styles.input, errores.nombres && styles.inputError]}
-                placeholder="Juan Carlos"
-                value={form.nombres}
-                onChangeText={v => cambiar('nombres', v)}
-              />
-              {errores.nombres && (
-                <Text style={styles.errorMsg}>{errores.nombres}</Text>
-              )}
-            </>
-          )}
-
-          {/* Apellidos */}
-          <Text style={styles.label}>Apellidos *</Text>
-          {clienteEncontrado ? (
-            <Text style={styles.valorMostrado}>
-              {form.apellidos || 'No especificado'}
+          </View>
+          <View style={styles.resumenRow}>
+            <Text style={styles.resumenLabel}>IVA 15%</Text>
+            <Text style={styles.resumenValor}>${totales.iva.toFixed(2)}</Text>
+          </View>
+          <View style={styles.totalesDivider} />
+          <View style={styles.resumenRow}>
+            <Text style={styles.resumenTotalLabel}>Total</Text>
+            <Text style={styles.resumenTotalValor}>
+              ${totales.total.toFixed(2)}
             </Text>
-          ) : (
-            <>
-              <TextInput
-                style={[styles.input, errores.apellidos && styles.inputError]}
-                placeholder="García Pérez"
-                value={form.apellidos}
-                onChangeText={v => cambiar('apellidos', v)}
-              />
-              {errores.apellidos && (
-                <Text style={styles.errorMsg}>{errores.apellidos}</Text>
-              )}
-            </>
-          )}
-
-          {/* Correo — siempre solo lectura */}
-          <Text style={styles.label}>Correo *</Text>
-          <Text style={styles.valorMostrado}>{form.correo}</Text>
-
-          {/* Teléfono */}
-          <Text style={styles.label}>Teléfono *</Text>
-          {clienteEncontrado ? (
-            <Text style={styles.valorMostrado}>
-              {form.telefono || 'No especificado'}
-            </Text>
-          ) : (
-            <>
-              <TextInput
-                style={[styles.input, errores.telefono && styles.inputError]}
-                placeholder="0991234567"
-                value={form.telefono}
-                onChangeText={v => cambiar('telefono', v)}
-                keyboardType="phone-pad"
-              />
-              {errores.telefono && (
-                <Text style={styles.errorMsg}>{errores.telefono}</Text>
-              )}
-            </>
-          )}
-
-          {/* Razón social — solo si tiene valor o formulario nuevo */}
-          {(form.razonSocial || !clienteEncontrado) && (
-            <>
-              <Text style={styles.label}>
-                Razón social / Empresa (opcional)
-              </Text>
-              {clienteEncontrado ? (
-                <Text style={styles.valorMostrado}>
-                  {form.razonSocial || 'No especificado'}
-                </Text>
-              ) : (
-                <TextInput
-                  style={styles.input}
-                  placeholder="Empresa S.A. (opcional)"
-                  value={form.razonSocial}
-                  onChangeText={v => cambiar('razonSocial', v)}
-                />
-              )}
-            </>
-          )}
-
-          {/* Dirección — solo si tiene valor o formulario nuevo */}
-          {(form.direccion || !clienteEncontrado) && (
-            <>
-              <Text style={styles.label}>Dirección</Text>
-              {clienteEncontrado ? (
-                <Text style={styles.valorMostrado}>
-                  {form.direccion || 'No especificado'}
-                </Text>
-              ) : (
-                <TextInput
-                  style={styles.input}
-                  placeholder="Av. Ejemplo 123, Quito"
-                  value={form.direccion}
-                  onChangeText={v => cambiar('direccion', v)}
-                />
-              )}
-            </>
-          )}
-
-          {clienteEncontrado && (
-            <Text style={styles.notaEdicion}>
-              ¿Tus datos no son correctos? Contacta a nuestro equipo de soporte.
-            </Text>
-          )}
+          </View>
         </View>
-      )}
 
-      {/* Resumen reserva */}
-      <View style={styles.resumenCard}>
-        <Text style={styles.resumenTitle}>Tu reserva</Text>
-        <Text style={styles.resumenVehiculo}>{vehiculo.modeloVehiculo}</Text>
-        <View style={styles.resumenRow}>
-          <Text style={styles.resumenLabel}>Duración</Text>
-          <Text style={styles.resumenValor}>{busqueda.dias} día(s)</Text>
-        </View>
-        <View style={styles.resumenRow}>
-          <Text style={styles.resumenLabel}>Subtotal</Text>
-          <Text style={styles.resumenValor}>
-            ${totales.subtotal.toFixed(2)}
-          </Text>
-        </View>
-        <View style={styles.resumenRow}>
-          <Text style={styles.resumenLabel}>IVA 15%</Text>
-          <Text style={styles.resumenValor}>${totales.iva.toFixed(2)}</Text>
-        </View>
-        <View style={[styles.resumenRow, styles.resumenRowTotal]}>
-          <Text style={styles.resumenTotalLabel}>Total</Text>
-          <Text style={styles.resumenTotalValor}>
-            ${totales.total.toFixed(2)}
-          </Text>
-        </View>
-      </View>
+        <TouchableOpacity style={styles.btnContinuar} onPress={continuar}>
+          <Text style={styles.btnContinuarText}>Revisar y confirmar →</Text>
+        </TouchableOpacity>
 
-      {/* Botones */}
-      <TouchableOpacity style={styles.btnContinuar} onPress={continuar}>
-        <Text style={styles.btnContinuarText}>
-          Revisar y confirmar →
-        </Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={styles.btnVolver}
-        onPress={() => navigation.goBack()}>
-        <Text style={styles.btnVolverText}>← Volver</Text>
-      </TouchableOpacity>
-
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F5F5' },
-  content: { padding: 16, paddingBottom: 40 },
-  hero: {
-    backgroundColor: '#C0392B', borderRadius: 12,
-    padding: 16, marginBottom: 16
+  container: {
+    flex: 1,
+    backgroundColor: NEGRO,
   },
-  heroTitle: {
-    color: '#FFF', fontSize: 18,
-    fontWeight: 'bold', marginBottom: 4
+  header: {
+    backgroundColor: NEGRO_CARD,
+    paddingTop: 48,
+    paddingBottom: 14,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#333',
   },
-  heroSub: { color: '#FFCDD2', fontSize: 13 },
+  btnVolver: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: NEGRO_INPUT,
+    borderWidth: 1,
+    borderColor: '#444',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  btnVolverText: {
+    color: BLANCO,
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  headerTextos: {
+    flex: 1,
+  },
+  headerTitulo: {
+    color: BLANCO,
+    fontSize: 15,
+    fontWeight: 'bold',
+    marginBottom: 2,
+  },
+  headerSub: {
+    color: GRIS_LABEL,
+    fontSize: 12,
+  },
+  content: {
+    padding: 16,
+    paddingBottom: 48,
+  },
+  seccionLabel: {
+    color: GRIS_LABEL,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    fontWeight: '700',
+    marginBottom: 10,
+    marginTop: 20,
+  },
   card: {
-    backgroundColor: '#FFF', borderRadius: 12,
-    padding: 16, marginBottom: 16, elevation: 1
-  },
-  sectionTitle: {
-    fontSize: 15, fontWeight: 'bold',
-    color: '#333', marginBottom: 12
+    backgroundColor: NEGRO_CARD,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#333',
+    marginBottom: 4,
   },
   busquedaRow: {
-    flexDirection: 'row', gap: 10, alignItems: 'center'
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'center',
   },
   btnBuscar: {
-    backgroundColor: '#C0392B', borderRadius: 8,
-    width: 44, height: 44,
-    justifyContent: 'center', alignItems: 'center'
+    backgroundColor: ROJO,
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  btnBuscarDisabled: { backgroundColor: '#E0A0A0' },
-  btnBuscarText: { fontSize: 18 },
+  btnBuscarDisabled: {
+    backgroundColor: '#7D1E18',
+  },
+  btnBuscarText: {
+    color: BLANCO,
+    fontSize: 13,
+    fontWeight: '600',
+  },
   btnCambiar: {
-    backgroundColor: '#F0F0F0', borderRadius: 8,
-    paddingHorizontal: 12, paddingVertical: 10,
-    justifyContent: 'center', alignItems: 'center'
+    backgroundColor: NEGRO_INPUT,
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#444',
   },
-  btnCambiarText: { fontSize: 13, color: '#555', fontWeight: '600' },
+  btnCambiarText: {
+    color: GRIS_LABEL,
+    fontSize: 13,
+    fontWeight: '600',
+  },
   msgExito: {
-    color: '#27AE60', fontSize: 12,
-    marginTop: 8, fontStyle: 'italic'
+    color: '#4CAF50',
+    fontSize: 12,
+    marginTop: 8,
   },
   msgInfo: {
-    color: '#2980B9', fontSize: 12,
-    marginTop: 8, fontStyle: 'italic'
+    color: '#64B5F6',
+    fontSize: 12,
+    marginTop: 8,
   },
-  label: {
-    fontSize: 13, fontWeight: '600',
-    color: '#333', marginBottom: 6, marginTop: 4
+  errorMsg: {
+    color: ROJO_CLARO,
+    fontSize: 12,
+    marginTop: 4,
+    marginBottom: 6,
   },
-  tipoRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
-  tipoBtn: {
-    flex: 1, paddingVertical: 10, borderRadius: 8,
-    borderWidth: 1, borderColor: '#DDD', alignItems: 'center'
+  fieldLabel: {
+    color: GRIS_LABEL,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    fontWeight: '600',
+    marginBottom: 6,
+    marginTop: 12,
   },
-  tipoBtnActivo: { backgroundColor: '#C0392B', borderColor: '#C0392B' },
-  tipoBtnText: { fontSize: 14, color: '#555' },
-  tipoBtnTextActivo: { color: '#FFF', fontWeight: 'bold' },
   input: {
-    backgroundColor: '#F9F9F9', borderRadius: 8,
-    borderWidth: 1, borderColor: '#DDD',
-    paddingHorizontal: 12, paddingVertical: 10,
-    fontSize: 14, marginBottom: 10
+    backgroundColor: NEGRO_INPUT,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#3D3D3D',
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    fontSize: 14,
+    color: BLANCO,
+    marginBottom: 4,
   },
-  inputError: { borderColor: '#C0392B' },
+  inputError: {
+    borderColor: ROJO,
+  },
   valorMostrado: {
-    fontSize: 15, color: '#222',
-    paddingVertical: 6, marginBottom: 10,
-    borderBottomWidth: 1, borderBottomColor: '#F0F0F0'
+    color: BLANCO,
+    fontSize: 14,
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#333',
+    marginBottom: 4,
   },
-  errorMsg: { color: '#C0392B', fontSize: 12, marginBottom: 8 },
+  tipoRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 4,
+  },
+  tipoBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#3D3D3D',
+    alignItems: 'center',
+    backgroundColor: NEGRO_INPUT,
+  },
+  tipoBtnActivo: {
+    backgroundColor: ROJO,
+    borderColor: ROJO,
+  },
+  tipoBtnText: {
+    fontSize: 14,
+    color: GRIS_LABEL,
+  },
+  tipoBtnTextActivo: {
+    color: BLANCO,
+    fontWeight: 'bold',
+  },
   notaEdicion: {
-    fontSize: 12, color: '#888',
-    fontStyle: 'italic', marginTop: 8
-  },
-  resumenCard: {
-    backgroundColor: '#FFF', borderRadius: 12,
-    padding: 16, marginBottom: 16, elevation: 1
-  },
-  resumenTitle: {
-    fontSize: 15, fontWeight: 'bold',
-    color: '#333', marginBottom: 10
+    fontSize: 12,
+    color: GRIS,
+    fontStyle: 'italic',
+    marginTop: 12,
   },
   resumenVehiculo: {
-    fontSize: 16, fontWeight: '600',
-    color: '#C0392B', marginBottom: 10
+    color: ROJO_CLARO,
+    fontSize: 15,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  totalesDivider: {
+    height: 1,
+    backgroundColor: '#333',
+    marginVertical: 8,
   },
   resumenRow: {
-    flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 6,
   },
-  resumenLabel: { fontSize: 13, color: '#666' },
-  resumenValor: { fontSize: 13, color: '#333', fontWeight: '500' },
-  resumenRowTotal: {
-    borderTopWidth: 1, borderTopColor: '#EEE',
-    paddingTop: 10, marginTop: 4
+  resumenLabel: {
+    color: GRIS_LABEL,
+    fontSize: 13,
   },
-  resumenTotalLabel: { fontSize: 15, fontWeight: 'bold', color: '#333' },
+  resumenValor: {
+    color: BLANCO,
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  resumenTotalLabel: {
+    color: BLANCO,
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
   resumenTotalValor: {
-    fontSize: 17, fontWeight: 'bold', color: '#C0392B'
+    color: ROJO_CLARO,
+    fontSize: 18,
+    fontWeight: 'bold',
   },
   btnContinuar: {
-    backgroundColor: '#C0392B', borderRadius: 12,
-    paddingVertical: 16, alignItems: 'center', marginBottom: 10
+    backgroundColor: ROJO,
+    borderRadius: 10,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginTop: 20,
   },
-  btnContinuarText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' },
-  btnVolver: {
-    borderWidth: 1, borderColor: '#C0392B',
-    borderRadius: 12, paddingVertical: 12, alignItems: 'center'
+  btnContinuarText: {
+    color: BLANCO,
+    fontSize: 15,
+    fontWeight: 'bold',
+    letterSpacing: 0.5,
   },
-  btnVolverText: { color: '#C0392B', fontSize: 14, fontWeight: '600' },
 });

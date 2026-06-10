@@ -8,6 +8,15 @@ import {
 import client from '../api/gatewayClient';
 import { GET_VEHICULOS_DISPONIBLES, GET_CATEGORIAS } from '../graphql/queries';
 
+const NEGRO = '#1A1A1A';
+const NEGRO_CARD = '#242424';
+const NEGRO_INPUT = '#2E2E2E';
+const ROJO = '#C0392B';
+const ROJO_CLARO = '#E74C3C';
+const GRIS = '#999999';
+const GRIS_LABEL = '#AAAAAA';
+const BLANCO = '#FFFFFF';
+
 export default function VehiculosScreen({ navigation, route }) {
   const busqueda = route.params;
   const [vehiculos, setVehiculos] = useState([]);
@@ -37,7 +46,7 @@ export default function VehiculosScreen({ navigation, route }) {
         fechaHoraDevolucion,
       });
       setVehiculos(data.obtenerVehiculosDisponibles || []);
-    } catch (e) {
+    } catch {
       setError('No se pudieron cargar los vehículos disponibles.');
     } finally {
       setCargando(false);
@@ -63,10 +72,7 @@ export default function VehiculosScreen({ navigation, route }) {
   }
 
   function seleccionar(vehiculo) {
-    navigation.navigate('Extras', {
-      busqueda,
-      vehiculo,
-    });
+    navigation.navigate('Extras', { busqueda, vehiculo });
   }
 
   function nombreCategoria(idCat) {
@@ -77,7 +83,7 @@ export default function VehiculosScreen({ navigation, route }) {
   if (cargando) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#C0392B" />
+        <ActivityIndicator size="large" color={ROJO} />
         <Text style={styles.loadingText}>Buscando vehículos disponibles...</Text>
       </View>
     );
@@ -98,63 +104,79 @@ export default function VehiculosScreen({ navigation, route }) {
 
   return (
     <View style={styles.container}>
-      {/* Resumen búsqueda */}
+
+      {/* Resumen búsqueda con botón volver integrado */}
       <View style={styles.resumen}>
-        <Text style={styles.resumenText}>
-          📍 {busqueda.nombreLocalizacionRecogida}
-        </Text>
-        <Text style={styles.resumenSub}>
-          {busqueda.fechaRecogida} → {busqueda.fechaDevolucion} ·{' '}
-          <Text style={styles.resumenDias}>{busqueda.dias} día(s)</Text>
-        </Text>
+        <TouchableOpacity
+          style={styles.btnVolver}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.btnVolverText}>{'<'}</Text>
+        </TouchableOpacity>
+        <View style={styles.resumenTextos}>
+          <Text style={styles.resumenLocalizacion}>
+            {busqueda.nombreLocalizacionRecogida}
+          </Text>
+          <Text style={styles.resumenFechas}>
+            {busqueda.fechaRecogida} → {busqueda.fechaDevolucion}{' '}
+            <Text style={styles.resumenDias}>· {busqueda.dias} día(s)</Text>
+          </Text>
+        </View>
       </View>
 
       {/* Filtros */}
-      <View style={styles.filtrosRow}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+      <View style={styles.filtrosWrapper}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filtrosContent}
+        >
           <TouchableOpacity
-            style={[styles.filtroChip,
-              filtroTransmision === '' && styles.filtroChipActivo]}
-            onPress={() => setFiltroTransmision('')}
+            style={[styles.chip,
+              filtroTransmision === '' && filtroCategoria === '' && styles.chipActivo]}
+            onPress={() => { setFiltroTransmision(''); setFiltroCategoria(''); }}
           >
-            <Text style={[styles.filtroChipText,
-              filtroTransmision === '' && styles.filtroChipTextActivo]}>
+            <Text style={[styles.chipText,
+              filtroTransmision === '' && filtroCategoria === '' && styles.chipTextActivo]}>
               Todos
             </Text>
           </TouchableOpacity>
+
           <TouchableOpacity
-            style={[styles.filtroChip,
-              filtroTransmision === 'AUTOMATICA' && styles.filtroChipActivo]}
-            onPress={() => setFiltroTransmision('AUTOMATICA')}
+            style={[styles.chip,
+              filtroTransmision === 'AUTOMATICA' && styles.chipActivo]}
+            onPress={() => setFiltroTransmision(
+              filtroTransmision === 'AUTOMATICA' ? '' : 'AUTOMATICA')}
           >
-            <Text style={[styles.filtroChipText,
-              filtroTransmision === 'AUTOMATICA' && styles.filtroChipTextActivo]}>
+            <Text style={[styles.chipText,
+              filtroTransmision === 'AUTOMATICA' && styles.chipTextActivo]}>
               Automático
             </Text>
           </TouchableOpacity>
+
           <TouchableOpacity
-            style={[styles.filtroChip,
-              filtroTransmision === 'MANUAL' && styles.filtroChipActivo]}
-            onPress={() => setFiltroTransmision('MANUAL')}
+            style={[styles.chip,
+              filtroTransmision === 'MANUAL' && styles.chipActivo]}
+            onPress={() => setFiltroTransmision(
+              filtroTransmision === 'MANUAL' ? '' : 'MANUAL')}
           >
-            <Text style={[styles.filtroChipText,
-              filtroTransmision === 'MANUAL' && styles.filtroChipTextActivo]}>
+            <Text style={[styles.chipText,
+              filtroTransmision === 'MANUAL' && styles.chipTextActivo]}>
               Manual
             </Text>
           </TouchableOpacity>
+
           {categorias.map(c => (
             <TouchableOpacity
               key={c.idCategoriaVehiculo}
-              style={[styles.filtroChip,
-                filtroCategoria === String(c.idCategoriaVehiculo) &&
-                styles.filtroChipActivo]}
+              style={[styles.chip,
+                filtroCategoria === String(c.idCategoriaVehiculo) && styles.chipActivo]}
               onPress={() => setFiltroCategoria(
                 filtroCategoria === String(c.idCategoriaVehiculo)
                   ? '' : String(c.idCategoriaVehiculo))}
             >
-              <Text style={[styles.filtroChipText,
-                filtroCategoria === String(c.idCategoriaVehiculo) &&
-                styles.filtroChipTextActivo]}>
+              <Text style={[styles.chipText,
+                filtroCategoria === String(c.idCategoriaVehiculo) && styles.chipTextActivo]}>
                 {c.nombreCategoriaVehiculo}
               </Text>
             </TouchableOpacity>
@@ -165,22 +187,22 @@ export default function VehiculosScreen({ navigation, route }) {
       {/* Lista vehículos */}
       {lista.length === 0 ? (
         <View style={styles.centered}>
-          <Text style={styles.emptyIcon}>🔍</Text>
-          <Text style={styles.emptyTitle}>No hay vehículos disponibles</Text>
+          <Text style={styles.emptyTitle}>Sin resultados</Text>
           <Text style={styles.emptySub}>
-            Prueba con otras fechas o ajusta los filtros.
+            No hay vehículos disponibles. Prueba con otras fechas o ajusta los filtros.
           </Text>
           <TouchableOpacity
-            style={styles.btnVolver}
+            style={styles.btnRetry}
             onPress={() => navigation.goBack()}
           >
-            <Text style={styles.btnVolverText}>← Cambiar búsqueda</Text>
+            <Text style={styles.btnRetryText}>Cambiar búsqueda</Text>
           </TouchableOpacity>
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.lista}>
           {lista.map(v => (
             <View key={v.idVehiculo} style={styles.card}>
+
               {/* Imagen */}
               {v.imagenReferencialUrl ? (
                 <Image
@@ -190,35 +212,49 @@ export default function VehiculosScreen({ navigation, route }) {
                 />
               ) : (
                 <View style={styles.cardImgPlaceholder}>
-                  <Text style={styles.cardImgIcon}>🚗</Text>
+                  <Text style={styles.cardImgPlaceholderText}>
+                    Sin imagen
+                  </Text>
                 </View>
               )}
 
               <View style={styles.cardBody}>
-                {/* Categoría y modelo */}
+                {/* Categoría */}
                 <Text style={styles.cardCategoria}>
-                  {nombreCategoria(v.idCategoriaVehiculo)}
+                  {nombreCategoria(v.idCategoriaVehiculo).toUpperCase()}
                 </Text>
+
+                {/* Modelo y año */}
                 <Text style={styles.cardModelo}>{v.modeloVehiculo}</Text>
                 <Text style={styles.cardAnio}>{v.aniofabricacIon}</Text>
 
+                {/* Separador */}
+                <View style={styles.cardDivider} />
+
                 {/* Specs */}
                 <View style={styles.specs}>
-                  <Text style={styles.spec}>
-                    👥 {v.capacidadPasajeros} pas.
-                  </Text>
-                  <Text style={styles.spec}>
-                    🧳 {v.capacidadMaletas} mal.
-                  </Text>
-                  <Text style={styles.spec}>
-                    ⚙️ {v.tipoTransmision === 'AUTOMATICA'
-                      ? 'Auto' : 'Manual'}
-                  </Text>
-                  <Text style={styles.spec}>
-                    ⛽ {v.tipoCombustible}
-                  </Text>
+                  <View style={styles.specItem}>
+                    <Text style={styles.specText}>
+                      {v.capacidadPasajeros} pas.
+                    </Text>
+                  </View>
+                  <View style={styles.specItem}>
+                    <Text style={styles.specText}>
+                      {v.capacidadMaletas} mal.
+                    </Text>
+                  </View>
+                  <View style={styles.specItem}>
+                    <Text style={styles.specText}>
+                      {v.tipoTransmision === 'AUTOMATICA' ? 'Auto' : 'Manual'}
+                    </Text>
+                  </View>
+                  <View style={styles.specItem}>
+                    <Text style={styles.specText}>{v.tipoCombustible}</Text>
+                  </View>
                   {v.aireAcondicionado && (
-                    <Text style={styles.spec}>❄️ A/C</Text>
+                    <View style={styles.specItem}>
+                      <Text style={styles.specText}>A/C</Text>
+                    </View>
                   )}
                 </View>
 
@@ -249,85 +285,226 @@ export default function VehiculosScreen({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F5F5' },
-  centered: {
-    flex: 1, justifyContent: 'center',
-    alignItems: 'center', padding: 20
+  container: {
+    flex: 1,
+    backgroundColor: NEGRO,
   },
-  loadingText: { marginTop: 12, color: '#666', fontSize: 14 },
+  centered: {
+    flex: 1,
+    backgroundColor: NEGRO,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  loadingText: {
+    color: GRIS,
+    fontSize: 14,
+    marginTop: 12,
+  },
   errorText: {
-    color: '#C0392B', fontSize: 14,
-    textAlign: 'center', marginBottom: 16
+    color: ROJO_CLARO,
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 16,
   },
   btnRetry: {
-    backgroundColor: '#C0392B', paddingHorizontal: 24,
-    paddingVertical: 10, borderRadius: 8
+    backgroundColor: ROJO,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 8,
   },
-  btnRetryText: { color: '#FFF', fontWeight: 'bold' },
+  btnRetryText: {
+    color: BLANCO,
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+
+  // ── Resumen ───────────────────────────────────────────────────────
   resumen: {
-    backgroundColor: '#FFF', padding: 12,
-    borderBottomWidth: 1, borderBottomColor: '#EEE'
+    backgroundColor: NEGRO_CARD,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    paddingTop: 48,
+    borderBottomWidth: 1,
+    borderBottomColor: '#333',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
-  resumenText: { fontSize: 14, fontWeight: '600', color: '#333' },
-  resumenSub: { fontSize: 12, color: '#666', marginTop: 2 },
-  resumenDias: { color: '#C0392B', fontWeight: 'bold' },
-  filtrosRow: {
-    backgroundColor: '#FFF', paddingVertical: 10,
-    paddingHorizontal: 12, borderBottomWidth: 1,
-    borderBottomColor: '#EEE'
+  btnVolver: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: NEGRO_INPUT,
+    borderWidth: 1,
+    borderColor: '#444',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  filtroChip: {
-    paddingHorizontal: 14, paddingVertical: 6,
-    borderRadius: 20, borderWidth: 1, borderColor: '#DDD',
-    marginRight: 8, backgroundColor: '#FFF'
+  btnVolverText: {
+    color: BLANCO,
+    fontSize: 20,
+    fontWeight: 'bold',
   },
-  filtroChipActivo: {
-    backgroundColor: '#C0392B', borderColor: '#C0392B'
+  resumenTextos: {
+    flex: 1,
   },
-  filtroChipText: { fontSize: 12, color: '#555' },
-  filtroChipTextActivo: { color: '#FFF' },
-  lista: { padding: 12 },
+  resumenLocalizacion: {
+    color: BLANCO,
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  resumenFechas: {
+    color: GRIS_LABEL,
+    fontSize: 12,
+  },
+  resumenDias: {
+    color: ROJO_CLARO,
+    fontWeight: 'bold',
+  },
+  // ── Filtros ───────────────────────────────────────────────────────
+  filtrosWrapper: {
+    backgroundColor: NEGRO_CARD,
+    borderBottomWidth: 1,
+    borderBottomColor: '#333',
+  },
+  filtrosContent: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  chip: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#444',
+    backgroundColor: NEGRO_INPUT,
+  },
+  chipActivo: {
+    backgroundColor: ROJO,
+    borderColor: ROJO,
+  },
+  chipText: {
+    fontSize: 12,
+    color: GRIS_LABEL,
+  },
+  chipTextActivo: {
+    color: BLANCO,
+    fontWeight: '600',
+  },
+
+  // ── Lista ─────────────────────────────────────────────────────────
+  lista: {
+    padding: 16,
+    gap: 16,
+  },
+  emptyTitle: {
+    color: BLANCO,
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  emptySub: {
+    color: GRIS,
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+
+  // ── Card vehículo ─────────────────────────────────────────────────
   card: {
-    backgroundColor: '#FFF', borderRadius: 12,
-    marginBottom: 16, overflow: 'hidden',
-    elevation: 2, shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1, shadowRadius: 4
+    backgroundColor: NEGRO_CARD,
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#333',
   },
-  cardImg: { width: '100%', height: 160 },
+  cardImg: {
+    width: '100%',
+    height: 180,
+    backgroundColor: NEGRO_INPUT,
+  },
   cardImgPlaceholder: {
-    width: '100%', height: 120,
-    backgroundColor: '#F5F5F5',
-    justifyContent: 'center', alignItems: 'center'
+    width: '100%',
+    height: 120,
+    backgroundColor: NEGRO_INPUT,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  cardImgIcon: { fontSize: 48 },
-  cardBody: { padding: 14 },
-  cardCategoria: { fontSize: 11, color: '#C0392B', fontWeight: '600' },
-  cardModelo: { fontSize: 18, fontWeight: 'bold', color: '#222', marginTop: 2 },
-  cardAnio: { fontSize: 13, color: '#888', marginBottom: 10 },
-  specs: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
-  spec: {
-    fontSize: 12, color: '#555',
-    backgroundColor: '#F5F5F5',
-    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6
+  cardImgPlaceholderText: {
+    color: GRIS,
+    fontSize: 13,
+  },
+  cardBody: {
+    padding: 16,
+  },
+  cardCategoria: {
+    color: ROJO_CLARO,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1.5,
+    marginBottom: 4,
+  },
+  cardModelo: {
+    color: BLANCO,
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 2,
+  },
+  cardAnio: {
+    color: GRIS,
+    fontSize: 13,
+    marginBottom: 12,
+  },
+  cardDivider: {
+    height: 1,
+    backgroundColor: '#333',
+    marginBottom: 12,
+  },
+  specs: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 16,
+  },
+  specItem: {
+    backgroundColor: NEGRO_INPUT,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#3D3D3D',
+  },
+  specText: {
+    color: GRIS_LABEL,
+    fontSize: 12,
   },
   cardFooter: {
     flexDirection: 'row',
-    justifyContent: 'space-between', alignItems: 'center'
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  precio: { fontSize: 22, fontWeight: 'bold', color: '#C0392B' },
-  precioDia: { fontSize: 11, color: '#888' },
+  precio: {
+    color: ROJO_CLARO,
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  precioDia: {
+    color: GRIS,
+    fontSize: 11,
+  },
   btnSeleccionar: {
-    backgroundColor: '#C0392B', borderRadius: 8,
-    paddingHorizontal: 16, paddingVertical: 10
+    backgroundColor: ROJO,
+    borderRadius: 8,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
   },
-  btnSeleccionarText: { color: '#FFF', fontWeight: 'bold', fontSize: 14 },
-  emptyIcon: { fontSize: 48, marginBottom: 12 },
-  emptyTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 8 },
-  emptySub: { fontSize: 14, color: '#666', textAlign: 'center', marginBottom: 20 },
-  btnVolver: {
-    backgroundColor: '#C0392B', borderRadius: 8,
-    paddingHorizontal: 20, paddingVertical: 10
+  btnSeleccionarText: {
+    color: BLANCO,
+    fontWeight: 'bold',
+    fontSize: 14,
   },
-  btnVolverText: { color: '#FFF', fontWeight: 'bold' },
 });

@@ -2,22 +2,25 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, ActivityIndicator,
-  TouchableOpacity, Alert
+  View, Text, StyleSheet, ActivityIndicator, TouchableOpacity
 } from 'react-native';
 import client from '../api/gatewayClient';
 import { GET_ESTADO_RESERVA } from '../graphql/queries';
-import {
-  POLLING_INTERVALO_MS,
-  POLLING_MAX_INTENTOS
-} from '../constants/config';
+import { POLLING_INTERVALO_MS, POLLING_MAX_INTENTOS } from '../constants/config';
+
+const NEGRO = '#1A1A1A';
+const NEGRO_CARD = '#242424';
+const ROJO = '#C0392B';
+const ROJO_CLARO = '#E74C3C';
+const GRIS = '#999999';
+const GRIS_LABEL = '#AAAAAA';
+const BLANCO = '#FFFFFF';
 
 export default function EstadoReservaScreen({ navigation, route }) {
   const { correlationId, codigoReserva, vehiculo, cliente, totales } = route.params;
 
   const [estado, setEstado] = useState('EN_PROCESO');
   const [mensaje, setMensaje] = useState('Procesando tu reserva...');
-  const [intentos, setIntentos] = useState(0);
   const [resultado, setResultado] = useState(null);
   const intervalRef = useRef(null);
 
@@ -27,27 +30,20 @@ export default function EstadoReservaScreen({ navigation, route }) {
   }, []);
 
   function iniciarPolling() {
-    // Primera consulta inmediata.
     consultarEstado();
-
-    // Consultas periódicas.
+    let intentos = 0;
     intervalRef.current = setInterval(() => {
-      setIntentos(prev => {
-        const nuevosIntentos = prev + 1;
-
-        if (nuevosIntentos >= POLLING_MAX_INTENTOS) {
-          detenerPolling();
-          setEstado('TIMEOUT');
-          setMensaje(
-            'La reserva está tardando más de lo esperado. ' +
-            'Por favor consulta con el equipo de soporte.'
-          );
-          return nuevosIntentos;
-        }
-
-        consultarEstado();
-        return nuevosIntentos;
-      });
+      intentos += 1;
+      if (intentos >= POLLING_MAX_INTENTOS) {
+        detenerPolling();
+        setEstado('TIMEOUT');
+        setMensaje(
+          'La reserva está tardando más de lo esperado. ' +
+          'Consulta con el equipo de soporte.'
+        );
+        return;
+      }
+      consultarEstado();
     }, POLLING_INTERVALO_MS);
   }
 
@@ -60,12 +56,8 @@ export default function EstadoReservaScreen({ navigation, route }) {
 
   async function consultarEstado() {
     try {
-      const data = await client.request(GET_ESTADO_RESERVA, {
-        correlationId
-      });
-
+      const data = await client.request(GET_ESTADO_RESERVA, { correlationId });
       const estadoData = data.consultarEstadoReserva;
-
       if (!estadoData) return;
 
       setEstado(estadoData.estado);
@@ -74,8 +66,6 @@ export default function EstadoReservaScreen({ navigation, route }) {
       if (estadoData.estado === 'Confirmada') {
         detenerPolling();
         setResultado(estadoData);
-
-        // Navegar a pantalla de éxito.
         navigation.replace('Exito', {
           codigoReserva: estadoData.codigoReserva,
           numeroFactura: estadoData.numeroFactura,
@@ -94,21 +84,15 @@ export default function EstadoReservaScreen({ navigation, route }) {
         detenerPolling();
         setResultado(estadoData);
       }
-    } catch (err) {
-      // Error de red — continuar polling silenciosamente.
-    }
+    } catch { }
   }
 
-  function irAlInicio() {
-    navigation.navigate('Search');
-  }
-
-  // ── Pantalla de reserva rechazada ─────────────────────────────────────
+  // ── Rechazada ─────────────────────────────────────────────────────────
   if (estado === 'Rechazada') {
     return (
       <View style={styles.container}>
-        <View style={styles.iconWrapper}>
-          <Text style={styles.iconRechazo}>✕</Text>
+        <View style={styles.iconCirculo}>
+          <Text style={styles.iconTexto}>✕</Text>
         </View>
         <Text style={styles.titulo}>Reserva no procesada</Text>
         <Text style={styles.subtitulo}>
@@ -116,22 +100,26 @@ export default function EstadoReservaScreen({ navigation, route }) {
             ? 'El vehículo ya no está disponible para las fechas seleccionadas.'
             : mensaje}
         </Text>
-        <Text style={styles.codigo}>Código: {codigoReserva}</Text>
-        <TouchableOpacity style={styles.btnPrimario} onPress={irAlInicio}>
-          <Text style={styles.btnPrimarioText}>
-            Buscar otro vehículo
-          </Text>
+        <View style={styles.codigoBox}>
+          <Text style={styles.codigoLabel}>CÓDIGO DE REFERENCIA</Text>
+          <Text style={styles.codigoGrande}>{codigoReserva}</Text>
+        </View>
+        <TouchableOpacity
+          style={styles.btnPrimario}
+          onPress={() => navigation.navigate('Search')}
+        >
+          <Text style={styles.btnPrimarioText}>Buscar otro vehículo</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
-  // ── Pantalla de timeout ───────────────────────────────────────────────
+  // ── Timeout ───────────────────────────────────────────────────────────
   if (estado === 'TIMEOUT') {
     return (
       <View style={styles.container}>
-        <View style={[styles.iconWrapper, styles.iconWrapperWarning]}>
-          <Text style={styles.iconWarning}>⚠️</Text>
+        <View style={[styles.iconCirculo, styles.iconCirculoWarning]}>
+          <Text style={styles.iconTexto}>!</Text>
         </View>
         <Text style={styles.titulo}>Procesando...</Text>
         <Text style={styles.subtitulo}>
@@ -139,96 +127,107 @@ export default function EstadoReservaScreen({ navigation, route }) {
           Guarda este código y contáctanos si no recibes confirmación.
         </Text>
         <View style={styles.codigoBox}>
-          <Text style={styles.codigoLabel}>Código de seguimiento</Text>
+          <Text style={styles.codigoLabel}>CÓDIGO DE SEGUIMIENTO</Text>
           <Text style={styles.codigoGrande}>{codigoReserva}</Text>
         </View>
-        <TouchableOpacity style={styles.btnPrimario} onPress={irAlInicio}>
+        <TouchableOpacity
+          style={styles.btnPrimario}
+          onPress={() => navigation.navigate('Search')}
+        >
           <Text style={styles.btnPrimarioText}>Volver al inicio</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
-  // ── Pantalla de procesando ────────────────────────────────────────────
-// ── Pantalla de procesando ────────────────────────────────────────────
-return (
-  <View style={styles.container}>
-    <ActivityIndicator size="large" color="#C0392B" style={styles.spinner} />
-    <Text style={styles.titulo}>Confirmando tu reserva</Text>
-    <Text style={styles.subtitulo}>
-      Por favor espera, esto tomará solo unos segundos...
-    </Text>
-    <View style={styles.codigoBox}>
-      <Text style={styles.codigoLabel}>Código de reserva</Text>
-      <Text style={styles.codigoGrande}>{codigoReserva}</Text>
+  // ── Procesando ────────────────────────────────────────────────────────
+  return (
+    <View style={styles.container}>
+      <ActivityIndicator size="large" color={ROJO} style={styles.spinner} />
+      <Text style={styles.titulo}>Confirmando tu reserva</Text>
+      <Text style={styles.subtitulo}>
+        Por favor espera, esto tomará solo unos segundos...
+      </Text>
+      <View style={styles.codigoBox}>
+        <Text style={styles.codigoLabel}>CÓDIGO DE RESERVA</Text>
+        <Text style={styles.codigoGrande}>{codigoReserva}</Text>
+      </View>
     </View>
-  </View>
-);
+  );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1, backgroundColor: '#FFF',
-    justifyContent: 'center', alignItems: 'center',
-    padding: 32
+    flex: 1,
+    backgroundColor: NEGRO,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
   },
   spinner: { marginBottom: 32 },
-  iconWrapper: {
-    width: 80, height: 80, borderRadius: 40,
-    backgroundColor: '#FFEBEE',
-    justifyContent: 'center', alignItems: 'center',
-    marginBottom: 24
+  iconCirculo: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: ROJO,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
   },
-  iconWrapperWarning: { backgroundColor: '#FFF8E1' },
-  iconRechazo: { fontSize: 36, color: '#C0392B' },
-  iconWarning: { fontSize: 36 },
+  iconCirculoWarning: {
+    backgroundColor: '#B7770D',
+  },
+  iconTexto: {
+    fontSize: 36,
+    color: BLANCO,
+    fontWeight: 'bold',
+  },
   titulo: {
-    fontSize: 22, fontWeight: 'bold',
-    color: '#222', textAlign: 'center', marginBottom: 12
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: BLANCO,
+    textAlign: 'center',
+    marginBottom: 12,
   },
   subtitulo: {
-    fontSize: 15, color: '#666',
-    textAlign: 'center', lineHeight: 22, marginBottom: 24
-  },
-  codigo: {
-    fontSize: 14, color: '#888',
-    marginBottom: 32
+    fontSize: 14,
+    color: GRIS_LABEL,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
   },
   codigoBox: {
-    backgroundColor: '#F5F5F5', borderRadius: 12,
-    padding: 20, alignItems: 'center',
-    marginBottom: 24, width: '100%'
+    backgroundColor: NEGRO_CARD,
+    borderRadius: 12,
+    padding: 20,
+    alignItems: 'center',
+    marginBottom: 24,
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#333',
   },
   codigoLabel: {
-    fontSize: 12, color: '#888',
-    marginBottom: 8, textTransform: 'uppercase',
-    letterSpacing: 1
+    fontSize: 10,
+    color: GRIS_LABEL,
+    letterSpacing: 1.5,
+    fontWeight: '700',
+    marginBottom: 8,
   },
   codigoGrande: {
-    fontSize: 20, fontWeight: 'bold',
-    color: '#C0392B', letterSpacing: 1
-  },
-  infoBox: {
-    backgroundColor: '#FFEBEE', borderRadius: 10,
-    padding: 14, alignItems: 'center',
-    marginBottom: 24, width: '100%'
-  },
-  infoText: {
-    fontSize: 14, color: '#C0392B', fontWeight: '600'
-  },
-  infoSubtext: {
-    fontSize: 12, color: '#E57373', marginTop: 4
-  },
-  notaText: {
-    fontSize: 12, color: '#999',
-    textAlign: 'center', lineHeight: 18
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: ROJO_CLARO,
+    letterSpacing: 1,
   },
   btnPrimario: {
-    backgroundColor: '#C0392B', borderRadius: 12,
-    paddingVertical: 14, paddingHorizontal: 32,
-    marginTop: 8
+    backgroundColor: ROJO,
+    borderRadius: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 32,
   },
   btnPrimarioText: {
-    color: '#FFF', fontSize: 16, fontWeight: 'bold'
+    color: BLANCO,
+    fontSize: 15,
+    fontWeight: 'bold',
   },
 });

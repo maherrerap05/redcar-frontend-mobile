@@ -6,38 +6,32 @@ import {
   StyleSheet, Animated
 } from 'react-native';
 
+const NEGRO = '#1A1A1A';
+const NEGRO_CARD = '#242424';
+const ROJO = '#C0392B';
+const ROJO_CLARO = '#E74C3C';
+const GRIS = '#999999';
+const GRIS_LABEL = '#AAAAAA';
+const BLANCO = '#FFFFFF';
+
 export default function ExitoScreen({ navigation, route }) {
   const {
-    codigoReserva,
-    numeroFactura,
-    estadoFactura,
-    fechaEmisionFactura,
-    cantidadDias,
-    subtotalVehiculo,
-    subtotalExtras,
-    subtotal,
-    iva,
-    total,
-    vehiculo,
-    cliente,
+    codigoReserva, numeroFactura, estadoFactura,
+    fechaEmisionFactura, cantidadDias,
+    subtotalVehiculo, subtotalExtras, subtotal, iva, total,
+    vehiculo, cliente,
   } = route.params;
 
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Animación de entrada del ícono de éxito.
     Animated.sequence([
       Animated.spring(scaleAnim, {
-        toValue: 1,
-        tension: 50,
-        friction: 5,
-        useNativeDriver: true,
+        toValue: 1, tension: 50, friction: 5, useNativeDriver: true,
       }),
       Animated.timing(opacityAnim, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver: true,
+        toValue: 1, duration: 400, useNativeDriver: true,
       }),
     ]).start();
   }, []);
@@ -45,24 +39,19 @@ export default function ExitoScreen({ navigation, route }) {
   function formatearFecha(fechaIso) {
     if (!fechaIso) return '—';
     try {
-      const fecha = new Date(fechaIso);
-      return fecha.toLocaleDateString('es-EC', {
+      return new Date(fechaIso).toLocaleDateString('es-EC', {
         year: 'numeric', month: 'long', day: 'numeric'
       });
-    } catch {
-      return fechaIso;
-    }
-  }
-
-  function nuevaReserva() {
-    navigation.navigate('Search');
+    } catch { return fechaIso; }
   }
 
   return (
-    <ScrollView style={styles.container}
-      contentContainerStyle={styles.content}>
-
-      {/* Ícono de éxito animado */}
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+    >
+      {/* Icono animado */}
       <Animated.View style={[
         styles.iconWrapper,
         { transform: [{ scale: scaleAnim }] }
@@ -71,126 +60,115 @@ export default function ExitoScreen({ navigation, route }) {
       </Animated.View>
 
       {/* Título */}
-      <Animated.View style={{ opacity: opacityAnim }}>
-        <Text style={styles.titulo}>¡Reserva Confirmada!</Text>
+      <Animated.View style={[styles.tituloWrapper, { opacity: opacityAnim }]}>
+        <Text style={styles.titulo}>Reserva Confirmada</Text>
         <Text style={styles.subtitulo}>
           Tu reserva ha sido procesada exitosamente.
           La factura ha sido generada a tu nombre.
         </Text>
       </Animated.View>
 
-      {/* Código de reserva */}
+      {/* Código de reserva y factura */}
       <View style={styles.codigoCard}>
-        <Text style={styles.codigoLabel}>Código de reserva</Text>
+        <Text style={styles.seccionLabel}>CÓDIGO DE RESERVA</Text>
         <Text style={styles.codigoValor}>{codigoReserva}</Text>
         <View style={styles.divider} />
-        <Text style={styles.codigoLabel}>Número de factura</Text>
+        <Text style={styles.seccionLabel}>NÚMERO DE FACTURA</Text>
         <Text style={styles.facturaValor}>{numeroFactura}</Text>
         <Text style={styles.facturaEstado}>
-          Estado: {estadoFactura} · {formatearFecha(fechaEmisionFactura)}
+          {estadoFactura} · {formatearFecha(fechaEmisionFactura)}
         </Text>
       </View>
 
-      {/* Resumen del vehículo */}
-      <View style={styles.seccion}>
-        <Text style={styles.seccionTitle}>🚗 Vehículo reservado</Text>
-        <View style={styles.card}>
-          <Text style={styles.vehiculoModelo}>
-            {vehiculo.modeloVehiculo}
+      {/* Vehículo */}
+      <Text style={styles.seccionLabel}>VEHÍCULO RESERVADO</Text>
+      <View style={styles.card}>
+        <Text style={styles.vehiculoModelo}>{vehiculo.modeloVehiculo}</Text>
+        <Text style={styles.vehiculoSub}>
+          {vehiculo.aniofabricacIon} · {vehiculo.tipoTransmision}
+        </Text>
+        <InfoFila
+          label="Duración"
+          valor={`${cantidadDias} ${cantidadDias === 1 ? 'día' : 'días'}`}
+          ultimo
+        />
+      </View>
+
+      {/* Titular */}
+      <Text style={styles.seccionLabel}>TITULAR</Text>
+      <View style={styles.card}>
+        <InfoFila
+          label="Nombre"
+          valor={`${cliente.nombres} ${cliente.apellidos || ''}`}
+        />
+        <InfoFila label="Correo" valor={cliente.correo} />
+        <InfoFila label="Teléfono" valor={cliente.telefono} ultimo />
+      </View>
+
+      {/* Detalle de pago */}
+      <Text style={styles.seccionLabel}>DETALLE DE PAGO</Text>
+      <View style={styles.card}>
+        <View style={styles.totalRow}>
+          <Text style={styles.totalLabel}>
+            Vehículo ({cantidadDias} día(s))
           </Text>
-          <Text style={styles.vehiculoSub}>
-            {vehiculo.aniofabricacIon} · {vehiculo.tipoTransmision}
+          <Text style={styles.totalValor}>
+            ${Number(subtotalVehiculo).toFixed(2)}
           </Text>
-          <InfoFila
-            label="Duración"
-            valor={`${cantidadDias} ${cantidadDias === 1 ? 'día' : 'días'}`}
-          />
+        </View>
+        {subtotalExtras > 0 && (
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>Extras</Text>
+            <Text style={styles.totalValor}>
+              ${Number(subtotalExtras).toFixed(2)}
+            </Text>
+          </View>
+        )}
+        <View style={styles.totalRow}>
+          <Text style={styles.totalLabel}>Subtotal</Text>
+          <Text style={styles.totalValor}>
+            ${Number(subtotal).toFixed(2)}
+          </Text>
+        </View>
+        <View style={styles.totalRow}>
+          <Text style={styles.totalLabel}>IVA 15%</Text>
+          <Text style={styles.totalValor}>
+            ${Number(iva).toFixed(2)}
+          </Text>
+        </View>
+        <View style={styles.divider} />
+        <View style={styles.totalRow}>
+          <Text style={styles.grandTotalLabel}>Total pagado</Text>
+          <Text style={styles.grandTotalValor}>
+            ${Number(total).toFixed(2)}
+          </Text>
         </View>
       </View>
 
-      {/* Datos del titular */}
-      <View style={styles.seccion}>
-        <Text style={styles.seccionTitle}>🧾 Titular</Text>
-        <View style={styles.card}>
-          <InfoFila
-            label="Nombre"
-            valor={`${cliente.nombres} ${cliente.apellidos || ''}`}
-          />
-          <InfoFila label="Correo" valor={cliente.correo} />
-          <InfoFila label="Teléfono" valor={cliente.telefono} />
-        </View>
-      </View>
-
-      {/* Resumen financiero */}
-      <View style={styles.seccion}>
-        <Text style={styles.seccionTitle}>💳 Detalle de pago</Text>
-        <View style={styles.card}>
-          <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>
-              Vehículo ({cantidadDias} día(s))
-            </Text>
-            <Text style={styles.totalValor}>
-              ${Number(subtotalVehiculo).toFixed(2)}
-            </Text>
-          </View>
-          {subtotalExtras > 0 && (
-            <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>Extras</Text>
-              <Text style={styles.totalValor}>
-                ${Number(subtotalExtras).toFixed(2)}
-              </Text>
-            </View>
-          )}
-          <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Subtotal</Text>
-            <Text style={styles.totalValor}>
-              ${Number(subtotal).toFixed(2)}
-            </Text>
-          </View>
-          <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>IVA 15%</Text>
-            <Text style={styles.totalValor}>
-              ${Number(iva).toFixed(2)}
-            </Text>
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.totalRow}>
-            <Text style={styles.grandTotalLabel}>Total pagado</Text>
-            <Text style={styles.grandTotalValor}>
-              ${Number(total).toFixed(2)}
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Nota informativa */}
+      {/* Nota */}
       <View style={styles.notaBox}>
         <Text style={styles.notaTexto}>
-          📧 Conserva tu código de reserva{' '}
-          <Text style={styles.notaCodigo}>{codigoReserva}</Text>{' '}
-          para cualquier consulta o trámite relacionado con tu renta.
+          Conserva tu código de reserva{' '}
+          <Text style={styles.notaCodigo}>{codigoReserva}</Text>
+          {' '}para cualquier consulta relacionada con tu renta.
         </Text>
       </View>
 
       {/* Botón nueva reserva */}
       <TouchableOpacity
         style={styles.btnNuevaReserva}
-        onPress={nuevaReserva}
+        onPress={() => navigation.navigate('Search')}
       >
-        <Text style={styles.btnNuevaReservaText}>
-          🚗 Hacer otra reserva
-        </Text>
+        <Text style={styles.btnNuevaReservaText}>Hacer otra reserva</Text>
       </TouchableOpacity>
 
     </ScrollView>
   );
 }
 
-// ── Componente auxiliar ───────────────────────────────────────────────────────
-
-function InfoFila({ label, valor }) {
+function InfoFila({ label, valor, ultimo = false }) {
   return (
-    <View style={styles.infoFila}>
+    <View style={[styles.infoFila, !ultimo && styles.infoFilaBorder]}>
       <Text style={styles.infoLabel}>{label}</Text>
       <Text style={styles.infoValor}>{valor ?? '—'}</Text>
     </View>
@@ -198,110 +176,171 @@ function InfoFila({ label, valor }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F5F5' },
+  container: {
+    flex: 1,
+    backgroundColor: NEGRO,
+  },
   content: {
-    padding: 16, paddingBottom: 48,
-    alignItems: 'center'
+    padding: 16,
+    paddingBottom: 48,
+    alignItems: 'center',
   },
   iconWrapper: {
-    width: 100, height: 100, borderRadius: 50,
-    backgroundColor: '#C0392B',
-    justifyContent: 'center', alignItems: 'center',
-    marginTop: 24, marginBottom: 20,
-    elevation: 4,
-    shadowColor: '#C0392B',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3, shadowRadius: 8
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: ROJO,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 32,
+    marginBottom: 20,
   },
   iconExito: {
-    fontSize: 48, color: '#FFF', fontWeight: 'bold'
+    fontSize: 44,
+    color: BLANCO,
+    fontWeight: 'bold',
+  },
+  tituloWrapper: {
+    alignItems: 'center',
+    marginBottom: 24,
   },
   titulo: {
-    fontSize: 26, fontWeight: 'bold',
-    color: '#222', textAlign: 'center', marginBottom: 10
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: BLANCO,
+    textAlign: 'center',
+    marginBottom: 8,
   },
   subtitulo: {
-    fontSize: 14, color: '#666',
-    textAlign: 'center', lineHeight: 22,
-    marginBottom: 24, paddingHorizontal: 16
+    fontSize: 14,
+    color: GRIS_LABEL,
+    textAlign: 'center',
+    lineHeight: 22,
+    paddingHorizontal: 16,
   },
   codigoCard: {
-    backgroundColor: '#FFF', borderRadius: 16,
-    padding: 24, width: '100%', marginBottom: 20,
-    alignItems: 'center', elevation: 2,
-    borderWidth: 2, borderColor: '#C0392B'
+    backgroundColor: NEGRO_CARD,
+    borderRadius: 16,
+    padding: 20,
+    width: '100%',
+    marginBottom: 20,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: ROJO,
   },
-  codigoLabel: {
-    fontSize: 11, color: '#999',
-    textTransform: 'uppercase', letterSpacing: 1,
-    marginBottom: 6
+  seccionLabel: {
+    color: GRIS_LABEL,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    fontWeight: '700',
+    marginBottom: 8,
+    marginTop: 16,
+    alignSelf: 'flex-start',
   },
   codigoValor: {
-    fontSize: 24, fontWeight: 'bold',
-    color: '#C0392B', letterSpacing: 2,
-    marginBottom: 16
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: ROJO_CLARO,
+    letterSpacing: 2,
+    marginBottom: 8,
   },
   divider: {
-    height: 1, backgroundColor: '#F0F0F0',
-    width: '100%', marginVertical: 12
+    height: 1,
+    backgroundColor: '#333',
+    width: '100%',
+    marginVertical: 12,
   },
   facturaValor: {
-    fontSize: 16, fontWeight: '600',
-    color: '#333', marginBottom: 4
+    fontSize: 16,
+    fontWeight: '600',
+    color: BLANCO,
+    marginBottom: 4,
   },
-  facturaEstado: { fontSize: 12, color: '#888' },
-  seccion: { width: '100%', marginBottom: 16 },
-  seccionTitle: {
-    fontSize: 15, fontWeight: 'bold',
-    color: '#333', marginBottom: 8
+  facturaEstado: {
+    fontSize: 12,
+    color: GRIS,
   },
   card: {
-    backgroundColor: '#FFF', borderRadius: 12,
-    padding: 16, elevation: 1
+    backgroundColor: NEGRO_CARD,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#333',
+    width: '100%',
+    marginBottom: 4,
   },
   vehiculoModelo: {
-    fontSize: 18, fontWeight: 'bold',
-    color: '#222', marginBottom: 4
+    color: BLANCO,
+    fontSize: 17,
+    fontWeight: 'bold',
+    marginBottom: 4,
   },
   vehiculoSub: {
-    fontSize: 13, color: '#888', marginBottom: 10
+    color: GRIS,
+    fontSize: 13,
+    marginBottom: 10,
   },
   infoFila: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    paddingVertical: 6,
-    borderBottomWidth: 1, borderBottomColor: '#F5F5F5'
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 7,
   },
-  infoLabel: { fontSize: 13, color: '#888', flex: 1 },
+  infoFilaBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#333',
+  },
+  infoLabel: { fontSize: 13, color: GRIS_LABEL, flex: 1 },
   infoValor: {
-    fontSize: 13, color: '#333',
-    fontWeight: '500', flex: 2, textAlign: 'right'
+    fontSize: 13,
+    color: BLANCO,
+    fontWeight: '500',
+    flex: 2,
+    textAlign: 'right',
   },
   totalRow: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    marginBottom: 8
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
   },
-  totalLabel: { fontSize: 14, color: '#666' },
-  totalValor: { fontSize: 14, color: '#333', fontWeight: '500' },
-  grandTotalLabel: {
-    fontSize: 16, fontWeight: 'bold', color: '#333'
-  },
+  totalLabel: { fontSize: 13, color: GRIS_LABEL },
+  totalValor: { fontSize: 13, color: BLANCO, fontWeight: '500' },
+  grandTotalLabel: { fontSize: 16, fontWeight: 'bold', color: BLANCO },
   grandTotalValor: {
-    fontSize: 18, fontWeight: 'bold', color: '#C0392B'
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: ROJO_CLARO,
   },
   notaBox: {
-    backgroundColor: '#FFEBEE', borderRadius: 12,
-    padding: 16, width: '100%', marginBottom: 20
+    backgroundColor: NEGRO_CARD,
+    borderRadius: 12,
+    padding: 16,
+    width: '100%',
+    marginTop: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: ROJO,
   },
   notaTexto: {
-    fontSize: 13, color: '#555', lineHeight: 20, textAlign: 'center'
+    fontSize: 13,
+    color: GRIS_LABEL,
+    lineHeight: 20,
+    textAlign: 'center',
   },
-  notaCodigo: { fontWeight: 'bold', color: '#C0392B' },
+  notaCodigo: {
+    fontWeight: 'bold',
+    color: ROJO_CLARO,
+  },
   btnNuevaReserva: {
-    backgroundColor: '#C0392B', borderRadius: 12,
-    paddingVertical: 16, paddingHorizontal: 40,
-    alignItems: 'center', width: '100%'
+    backgroundColor: ROJO,
+    borderRadius: 10,
+    paddingVertical: 16,
+    alignItems: 'center',
+    width: '100%',
   },
   btnNuevaReservaText: {
-    color: '#FFF', fontSize: 16, fontWeight: 'bold'
+    color: BLANCO,
+    fontSize: 15,
+    fontWeight: 'bold',
+    letterSpacing: 0.5,
   },
 });
